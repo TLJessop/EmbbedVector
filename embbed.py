@@ -1,7 +1,10 @@
 from openai import OpenAI
-import pandas as pd
+import os
+from dotenv import load_dotenv
 
-client = OpenAI()
+load_dotenv()  # Load environment variables from .env file
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_embedding(text):
     embedding = client.embeddings.create(
