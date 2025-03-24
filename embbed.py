@@ -16,10 +16,10 @@ def generate_embedding(text):
     ).data[0].embedding
     return embedding
         
-print(generate_embedding("Hello, world!"))
+hello_embedding = generate_embedding("Hello, world!")
 
 def create_named_index(name):
-    pinecone.create_index(
+    index = pinecone.create_index(
         name=name,
         dimension=1536,
         metric="cosine",
@@ -28,4 +28,6 @@ def create_named_index(name):
             region="us-east-1"
         )
     )
+    return index
+    
         
