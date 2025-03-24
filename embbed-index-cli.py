@@ -1,11 +1,18 @@
 import sys
 import uuid
+import os
+from dotenv import load_dotenv
+from pinecone import Pinecone
+import pinecone
 from index import (
     get_index_list,
     create_named_index,
-    pinecone
 )
 from embbed import generate_embedding
+
+load_dotenv()
+
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))  # Load environment variables from .env file
 
 def show_help():
     print("Usage: python3 embbed-index-cli.py <mode>")
@@ -61,7 +68,7 @@ def delete_mode():
     
     confirm = input(f"Are you sure you want to delete index '{index_name}'? (y/N): ").strip().lower()
     if confirm == 'y':
-        pinecone.delete_index(index_name)
+        pc.delete_index(index_name)
         print(f"Index '{index_name}' deleted successfully!")
     else:
         print("Deletion cancelled")
@@ -72,13 +79,60 @@ def create_embedding_mode():
         print("Error: Index name cannot be empty")
         return
     
-    index = pinecone.describe_index(index_name)
-    if not index:
-        print(f"Error: Index '{index_name}' does not exist")
+    try:
+        index_description = pc.describe_index(index_name)
+        index = pinecone.Index(
+            name=index_name,
+            host=index_description.host,
+            api_key=os.getenv("PINECONE_API_KEY")
+        )
+        upsert_data(index)
+        print(f"Embeddings created successfully for index '{index_name}'")
+    except Exception as e:
+        print(f"Error: Could not access index '{index_name}': {e}")
+        return
+
+def query_mode():
+    index_name = input("Enter the name of the index to query: ").strip()
+    if not index_name:
+        print("Error: Index name cannot be empty")
         return
     
-    upsert_data(index)
-    print(f"Embeddings created successfully for index '{index_name}'")
+    try:
+        # Get index description first to verify it exists and get the host
+        index_description = pc.describe_index(index_name)
+        index = pinecone.Index(
+            name=index_name,
+            host=index_description.host,
+            api_key=os.getenv("PINECONE_API_KEY")
+        )
+    except Exception as e:
+        print(f"Error: Could not access index '{index_name}': {e}")
+        return
+    
+    query = input("Enter the query: ").strip()
+    if not query:
+        print("Error: Query cannot be empty")
+        return
+    print("Generating embedding for query...")
+    embedding = generate_embedding(query)
+
+    
+    results = index.query(
+        vector=embedding,
+        top_k=3,
+        include_metadata=True
+    )
+    
+    print("Query results:")
+    if not results.matches:
+        print("  No matches found")
+        return
+        
+    for match in results.matches:
+        print(f"  - Score: {match.score:.4f}")
+        if hasattr(match, 'metadata') and match.metadata:
+            print(f"    Text: {match.metadata.get('text', 'No text available')}")
 
 def upsert_data(index):
     user_input = input("Enter the text to create embeddings for: ").strip()
@@ -87,19 +141,16 @@ def upsert_data(index):
         return
     
     embedding = generate_embedding(user_input)
- # Generate a unique ID for each vector.  This is CRUCIAL.
+    # Generate a unique ID for each vector
     vector_id = str(uuid.uuid4())
 
     try:
-        index.upsert(
-            vectors=[(vector_id, embedding, {"text": user_input})],
-            namespace=namespace  # Use the provided namespace
-        )
+        index.upsert([
+            (vector_id, embedding, {"text": user_input})
+        ])
         print(f"Embeddings created successfully for text '{user_input}' with ID '{vector_id}'")
     except Exception as e:
         print(f"Error upserting data: {e}")
-
-    print(f"Embeddings created successfully for text '{user_input}'")
 
 
 
@@ -119,6 +170,8 @@ def main():
         delete_mode()
     elif mode == 'create-embedding':
         create_embedding_mode()
+    elif mode == 'query-index':
+        query_mode()
     else:
         print(f"Error: Unknown mode '{mode}'")
         show_help()

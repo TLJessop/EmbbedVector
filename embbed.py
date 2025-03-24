@@ -12,5 +12,5 @@ def generate_embedding(text):
         model="text-embedding-ada-002",
         input=[text]
     ).data[0].embedding
-    print("Generated embedding:", embedding)
+    print("Generated embedding:")
     return embedding
