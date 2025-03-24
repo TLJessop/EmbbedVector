@@ -12,14 +12,6 @@ load_dotenv()  # Load environment variables from .env file
 pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def generate_embedding(text):
-    embedding = client.embeddings.create(
-        model="text-embedding-ada-002",
-        input=[text]
-    ).data[0].embedding
-    print("Generated embedding:", embedding)
-    return embedding
-
 def create_named_index(name):
     index = pinecone.create_index(
         name=name,

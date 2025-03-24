@@ -1,5 +1,5 @@
 import sys
-from embbed import (
+from index import (
     get_index_list,
     create_named_index,
     pinecone
