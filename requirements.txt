@@ -6,3 +6,4 @@ pinecone-datasets==1.0.2
 pinecone-notebooks==0.1.1
 pinecone-client==5.0.1
 datasets==2.13.1
+uuid
