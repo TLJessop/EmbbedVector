@@ -2,9 +2,6 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec, Index
-from datasets import load_dataset
-from tqdm import tqdm
-import time
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -24,15 +21,6 @@ def create_named_index(name):
     )
     print(pc.describe_index(name))
     return index
-
-def index_data(index_name):
-    dataset = load_data()
-    for item in tqdm(dataset):
-        embedding = generate_embedding(item["text"])
-        pc.index(index_name).upsert(
-            vectors=[(str(item["index"]), embedding, {"text": item["text"]})]  # Using index as id and storing text as metadata
-        )
-    return
 
 def get_index_list():
     return pc.list_indexes()
